@@ -30,15 +30,8 @@ import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.border.EmptyBorder;
-import java.awt.BorderLayout;
-import java.awt.Color;
-import java.awt.Cursor;
-import java.awt.Desktop;
-import java.awt.Dimension;
-import java.awt.Graphics;
-import java.awt.GridLayout;
-import java.awt.Image;
-import java.awt.Window;
+import javax.swing.plaf.FontUIResource;
+import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.BufferedReader;
@@ -102,7 +95,7 @@ public class LauncherUI
 
         try
         {
-            UIManager.setLookAndFeel(UIManager.getCrossPlatformLookAndFeelClassName());
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         }
         catch (ClassNotFoundException | UnsupportedLookAndFeelException | InstantiationException | IllegalAccessException e)
         {
@@ -347,11 +340,6 @@ public class LauncherUI
             {
                 String name = URLDecoder.decode(entry.getKey(), StandardCharsets.UTF_8.name());
 
-                if (name.contains("gltd"))
-                {
-                    System.out.println("HEYY");
-                }
-
                 File file = new File(Settings.GAME_DIRECTORY, name);
                 URL url = new URL(Settings.FILES_URL.toString() + name);
 
@@ -429,9 +417,9 @@ public class LauncherUI
                 file = file.getAbsoluteFile();
                 filePathRelativize = gameDirectoryPath.relativize(file.toPath());
 
-                if (!remoteFiles.containsKey(filePathRelativize.toString()))
+                if (!remoteFiles.containsKey(filePathRelativize.toString().replace(File.separatorChar, '/')))
                 {
-                    if (!file.delete())
+                    if (file.exists() && !FileUtil.deleteFileRescursive(file))
                     {
                         Settings.LOGGER.error("Can't delete " + file.toString());
                         JOptionPane.showMessageDialog(null, "ไม่สามารถลบไฟล์ได้", "ข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
