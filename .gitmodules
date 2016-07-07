@@ -1,0 +1,3 @@
+[submodule "xenonlauncher"]
+	path = xenonlauncher
+	url = git@bitbucket.org:lion328/xenonlauncher.git

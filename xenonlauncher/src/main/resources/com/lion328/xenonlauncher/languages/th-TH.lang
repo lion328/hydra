@@ -1,0 +1,3 @@
+common.error="ข้อผิดพลาด"
+launcher.ui.status.downloading="กำลังดาวน์โหลด %s %d%%"
+launcher.ui.status.size=" ขนาด %d/%d ไบต์"
