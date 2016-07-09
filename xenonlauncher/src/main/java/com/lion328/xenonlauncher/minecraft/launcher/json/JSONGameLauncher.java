@@ -157,7 +157,10 @@ public class JSONGameLauncher extends BasicGameLauncher
         DependencyName depName = original.getDependencyName();
         File libFile;
 
-        if (original.getDownloadInfo().getArtifactInfo().getPath() == null)
+        if (original == null ||
+            original.getDownloadInfo() == null ||
+            original.getDownloadInfo().getArtifactInfo() == null ||
+            original.getDownloadInfo().getArtifactInfo().getPath() == null)
         {
             libFile = getDependencyFile(depName);
         }

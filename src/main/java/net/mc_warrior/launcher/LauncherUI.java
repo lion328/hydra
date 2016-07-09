@@ -8,6 +8,7 @@ import com.lion328.xenonlauncher.downloader.MultipleDownloader;
 import com.lion328.xenonlauncher.downloader.URLFileDownloader;
 import com.lion328.xenonlauncher.downloader.VerifiyFileDownloader;
 import com.lion328.xenonlauncher.downloader.verifier.MessageDigestFileVerifier;
+import com.lion328.xenonlauncher.minecraft.api.authentication.UserInformation;
 import com.lion328.xenonlauncher.minecraft.launcher.GameLauncher;
 import com.lion328.xenonlauncher.minecraft.launcher.json.JSONGameLauncher;
 import com.lion328.xenonlauncher.minecraft.launcher.json.data.GameVersion;
@@ -254,7 +255,7 @@ public class LauncherUI
 
                 statusLabel.setText("กำลังเปิดเกม");
 
-                Process process = launchGame();
+                final Process process = launchGame();
 
                 if (process == null)
                 {
@@ -266,6 +267,50 @@ public class LauncherUI
 
                 try
                 {
+
+                    new Thread()
+                    {
+
+                        @Override
+                        public void run()
+                        {
+                            int b;
+                            try
+                            {
+                                while ((b = process.getErrorStream().read()) != -1)
+                                {
+                                    System.err.write(b);
+                                }
+                            }
+                            catch (IOException e)
+                            {
+                                Settings.LOGGER.catching(e);
+                            }
+                        }
+                    }.start();
+
+                    Thread td = new Thread()
+                    {
+
+                        @Override
+                        public void run()
+                        {
+                            int b;
+                            try
+                            {
+                                while ((b = process.getInputStream().read()) != -1)
+                                {
+                                    System.out.write(b);
+                                }
+                            }
+                            catch (IOException e)
+                            {
+                                Settings.LOGGER.catching(e);
+                            }
+                        }
+                    };
+                    td.start();
+
                     process.waitFor();
                 }
                 catch (InterruptedException e)
@@ -482,6 +527,7 @@ public class LauncherUI
         }
 
         gameLauncher.setMaxMemorySize(1024);
+        gameLauncher.setUserInformation(new UserInformation("1234", usernameField.getText(), "1234", "1234"));
 
         try
         {
