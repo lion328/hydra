@@ -1,6 +1,5 @@
 package net.mc_warrior.launcher;
 
-import com.google.gson.Gson;
 import com.lion328.xenonlauncher.downloader.Downloader;
 import com.lion328.xenonlauncher.downloader.DownloaderCallback;
 import com.lion328.xenonlauncher.downloader.FileDownloader;
@@ -18,8 +17,6 @@ import com.lion328.xenonlauncher.minecraft.launcher.json.exception.LauncherVersi
 import com.lion328.xenonlauncher.util.FileUtil;
 
 import javax.imageio.ImageIO;
-import javax.swing.BorderFactory;
-import javax.swing.ImageIcon;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -30,8 +27,6 @@ import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
-import javax.swing.border.EmptyBorder;
-import javax.swing.plaf.FontUIResource;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
@@ -40,7 +35,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URI;
@@ -90,8 +84,22 @@ public class LauncherUI
 
         if (needUpdate)
         {
-            JOptionPane.showMessageDialog(null, "Launcher ล้าหลัง กรุณาดาวน์โหลดใหม่ได้ที่ " + Settings.WEBSITE_URL.toString(), "Launcher ล้าหลัง", JOptionPane.INFORMATION_MESSAGE);
-            System.exit(0);
+            try
+            {
+                if (!updateSelf())
+                {
+                    JOptionPane.showMessageDialog(null, "ไม่สามารถปรับปรุง Launcher ได้", "เกิดข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
+                    System.exit(-1);
+                }
+            }
+            catch (InterruptedException e)
+            {
+                Settings.LOGGER.catching(e);
+                JOptionPane.showMessageDialog(null, "ไม่สามารถปรับปรุง Launcher ได้ (InterruptedException)", "เกิดข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
+                System.exit(-1);
+            }
+            //JOptionPane.showMessageDialog(null, "Launcher ล้าหลัง กรุณาดาวน์โหลดใหม่ได้ที่ " + Settings.WEBSITE_URL.toString(), "Launcher ล้าหลัง", JOptionPane.INFORMATION_MESSAGE);
+            //System.exit(0);
         }
 
         try
@@ -482,8 +490,11 @@ public class LauncherUI
         return !Util.httpGET(Settings.REMOTE_LAUNCHER_VERSION_URL).trim().equals(Settings.LAUNCHER_VERSION);
     }
 
-    public boolean updateSelf() {
-        return true;
+    public boolean updateSelf() throws InterruptedException
+    {
+        SelfUpdaterUI updaterUI = new SelfUpdaterUI(Settings.getWorkingJar(), new URLFileDownloader(Settings.REMOTE_LAUNCHER_URL, Settings.getWorkingJar()));
+        updaterUI.start();
+        return updaterUI.waitFor();
     }
 
     public GameVersion getGameVersion(String version)
@@ -525,6 +536,11 @@ public class LauncherUI
             JOptionPane.showMessageDialog(null, "ไม่สามารถอ่านข้อมูลในการเปิดเกมได้ กรุณาติดต่อผู้ดูแลระบบ", "เกิดข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
             return null;
         }
+
+        gameLauncher.addJVMArgument("-XX:HeapDumpPath=MojangTricksIntelDriversForPerformance_javaw.exe_minecraft.exe.heapdump");
+        gameLauncher.addJVMArgument("-XX:+UseConcMarkSweepGC");
+        gameLauncher.addJVMArgument("XX:+CMSIncrementalMode");
+        gameLauncher.addJVMArgument("-XX:-UseAdaptiveSizePolicy");
 
         gameLauncher.setMaxMemorySize(1024);
         gameLauncher.setUserInformation(new UserInformation("1234", usernameField.getText(), "1234", "1234"));

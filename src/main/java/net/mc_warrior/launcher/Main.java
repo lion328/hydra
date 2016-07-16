@@ -1,5 +1,9 @@
 package net.mc_warrior.launcher;
 
+import java.io.File;
+import java.net.URISyntaxException;
+import java.security.CodeSource;
+
 public class Main
 {
 

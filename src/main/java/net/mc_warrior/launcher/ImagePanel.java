@@ -5,7 +5,7 @@ import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.Image;
 
-class ImagePanel extends JPanel
+public class ImagePanel extends JPanel
 {
 
     private Image img;
