@@ -13,6 +13,8 @@ dependencies {
 sourceCompatibility = '1.7'
 targetCompatibility = '1.7'
 
+compileJava.options.encoding = 'UTF-8'
+
 jar {
     manifest {
         attributes 'Main-Class': 'net.mc_warrior.launcher.Main'
