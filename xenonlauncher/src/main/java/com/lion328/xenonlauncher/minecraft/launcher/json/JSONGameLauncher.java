@@ -296,23 +296,31 @@ public class JSONGameLauncher extends BasicGameLauncher
 
     private List<String> buildGameArgs()
     {
-        String mcArgs = versionInfo.getMinecraftArguments();
+        String[] mcArgs = versionInfo.getMinecraftArguments().split(" ");
         String value;
+        String mcArg;
 
-        for (Map.Entry<String, String> entry : replaceArgs.entrySet())
+        for (int i = 0; i < mcArgs.length; i++)
         {
-            value = entry.getValue();
+            mcArg = mcArgs[i];
+
+            if (!mcArg.startsWith("${") || !mcArg.endsWith("}"))
+            {
+                continue;
+            }
+
+            value = replaceArgs.get(mcArg.substring(2, mcArg.length() - 1));
 
             if (value == null)
             {
-                value = "null";
+                continue;
             }
 
-            mcArgs = mcArgs.replace("${" + entry.getKey() + "}", value);
+            mcArgs[i] = value;
         }
 
         List<String> mcArgsList = new ArrayList<>();
-        mcArgsList.addAll(Arrays.asList(mcArgs.split(" ")));
+        mcArgsList.addAll(Arrays.asList(mcArgs));
         mcArgsList.addAll(gameArgs);
 
         return mcArgsList;
