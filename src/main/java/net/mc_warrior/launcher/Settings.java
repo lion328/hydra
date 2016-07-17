@@ -14,10 +14,11 @@ public class Settings
 {
 
     public static final Logger LOGGER = LogManager.getLogger("MCWarrior-Launcher");
+    public static final boolean IGNORE_LAUNCHER_UPDATER;
 
     private static File workingJar;
 
-    public static final String LAUNCHER_VERSION = "0.1.1";
+    public static final String LAUNCHER_VERSION = "0.1.2";
     public static final String GAME_VERSION_NAME = "MCWarrior";
     public static final File GAME_DIRECTORY = new File(OS.getApplicationDataDirectory(), "mc-warrior");
 
@@ -25,7 +26,7 @@ public class Settings
     public static final URL REGISTER_URL = constantURL("http://mc-warrior.net/?page=register");
     public static final URL NEWS_IMAGE_URL = constantURL("http://mc-warrior.net/launcher/news.png");
     public static final URL AUTHENTICATION_URL = constantURL("http://mc-warrior.net/launcher/auth.php");
-    public static final URL FILES_LIST_URL = constantURL("http://mc-warrior.net/launcher/filelist.php");
+    public static final URL COMPRESSED_FILES_LIST_URL = constantURL("http://mc-warrior.net/launcher/filelist.txt.gz");
     public static final URL FILES_URL = constantURL("http://mc-warrior.net/launcher/files/");
     public static final URL WHITELIST_FILES_URL = constantURL("http://mc-warrior.net/launcher/whitelist.txt");
     public static final URL REMOTE_LAUNCHER_URL = constantURL("http://mc-warrior.net/launcher/launcher.exe");
@@ -64,5 +65,10 @@ public class Settings
     public static void setWorkingJar(File file)
     {
         workingJar = file;
+    }
+
+    static
+    {
+        IGNORE_LAUNCHER_UPDATER = Boolean.parseBoolean(System.getProperty("net.mc_warrior.launcher.ignoreLauncherUpdater"));
     }
 }

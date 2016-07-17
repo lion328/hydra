@@ -41,12 +41,14 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.net.URLDecoder;
+import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.zip.GZIPInputStream;
 
 public class LauncherUI
 {
@@ -69,37 +71,40 @@ public class LauncherUI
 
     public void start()
     {
-        boolean needUpdate = false;
+        if (!Settings.IGNORE_LAUNCHER_UPDATER)
+        {
+            boolean needUpdate = false;
 
-        try
-        {
-            needUpdate = needLauncherUpdate();
-        }
-        catch (IOException e)
-        {
-            Settings.LOGGER.catching(e);
-            JOptionPane.showMessageDialog(null, "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้", "เกิดข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
-            System.exit(-1);
-        }
-
-        if (needUpdate)
-        {
             try
             {
-                if (!updateSelf())
-                {
-                    JOptionPane.showMessageDialog(null, "ไม่สามารถปรับปรุง Launcher ได้", "เกิดข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
-                    System.exit(-1);
-                }
+                needUpdate = needLauncherUpdate();
             }
-            catch (InterruptedException e)
+            catch (IOException e)
             {
                 Settings.LOGGER.catching(e);
-                JOptionPane.showMessageDialog(null, "ไม่สามารถปรับปรุง Launcher ได้ (InterruptedException)", "เกิดข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(null, "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้", "เกิดข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
                 System.exit(-1);
             }
-            //JOptionPane.showMessageDialog(null, "Launcher ล้าหลัง กรุณาดาวน์โหลดใหม่ได้ที่ " + Settings.WEBSITE_URL.toString(), "Launcher ล้าหลัง", JOptionPane.INFORMATION_MESSAGE);
-            //System.exit(0);
+
+            if (needUpdate)
+            {
+                try
+                {
+                    if (!updateSelf())
+                    {
+                        JOptionPane.showMessageDialog(null, "ไม่สามารถปรับปรุง Launcher ได้", "เกิดข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
+                        System.exit(-1);
+                    }
+                }
+                catch (InterruptedException e)
+                {
+                    Settings.LOGGER.catching(e);
+                    JOptionPane.showMessageDialog(null, "ไม่สามารถปรับปรุง Launcher ได้ (InterruptedException)", "เกิดข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
+                    System.exit(-1);
+                }
+                //JOptionPane.showMessageDialog(null, "Launcher ล้าหลัง กรุณาดาวน์โหลดใหม่ได้ที่ " + Settings.WEBSITE_URL.toString(), "Launcher ล้าหลัง", JOptionPane.INFORMATION_MESSAGE);
+                //System.exit(0);
+            }
         }
 
         try
@@ -110,6 +115,9 @@ public class LauncherUI
         {
             Settings.LOGGER.catching(e);
         }
+
+        UIManager.put("ProgressBar.selectionBackground", Color.GRAY);
+        UIManager.put("ProgressBar.foreground", new Color(0x0EB600));
 
         mainFrame = new JFrame();
         mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -148,6 +156,7 @@ public class LauncherUI
         statusProgressBar.setBounds(15, 460, 545, 30);
 
         statusLabel.setForeground(Color.WHITE);
+        statusProgressBar.setStringPainted(true);
 
         panel.add(usernameField);
         panel.add(passwordField);
@@ -256,6 +265,7 @@ public class LauncherUI
                 }
                 catch (IOException e)
                 {
+                    Settings.LOGGER.catching(e);
                     JOptionPane.showMessageDialog(null, "ไม่สามารถดาวน์โหลดเกมได้ กรุณาลองใหม่ภายหลัง", "เกิดข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
                     resetUI();
                     return;
@@ -336,6 +346,7 @@ public class LauncherUI
         usernameField.setEnabled(true);
         passwordField.setEnabled(true);
 
+        statusProgressBar.setString("0%");
         statusProgressBar.setValue(0);
         statusLabel.setText("ไม่มีการทำงาน");
 
@@ -349,24 +360,65 @@ public class LauncherUI
             return false;
         }
 
-        String param = "?username=" + usernameField.getText() + "&password=" + new String(passwordField.getPassword());
-        URL url = new URL(Settings.AUTHENTICATION_URL.toString() + param);
-        return Util.httpGET(url).trim().equals("true");
+        HttpURLConnection connection = (HttpURLConnection) Settings.AUTHENTICATION_URL.openConnection();
+        connection.setRequestMethod("POST");
+
+        String param = "username=" + usernameField.getText() + "&password=" + URLEncoder.encode(new String(passwordField.getPassword()), StandardCharsets.UTF_8.name());
+        byte[] paramBytes = param.getBytes(StandardCharsets.UTF_8);
+
+        connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
+        connection.setRequestProperty("Content-Length", String.valueOf(paramBytes.length));
+        connection.setDoOutput(true);
+        connection.getOutputStream().write(paramBytes);
+
+        BufferedReader br = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+        String s;
+        StringBuilder sb = new StringBuilder();
+
+        while((s = br.readLine()) != null)
+        {
+            sb.append(s);
+        }
+
+        return sb.toString().trim().equals("true");
     }
 
     public boolean downloadGame() throws IOException
     {
-        Map<String, String> remoteFiles = new HashMap<>();
+        List<String> whitelistFileList = new ArrayList<>();
 
-        HttpURLConnection connection = (HttpURLConnection) Settings.FILES_LIST_URL.openConnection();
+        HttpURLConnection connection = (HttpURLConnection) Settings.WHITELIST_FILES_URL.openConnection();
         connection.setRequestMethod("GET");
 
         BufferedReader br = new BufferedReader(new InputStreamReader((connection.getInputStream())));
-        String s, fileName, hash;
+        String s;
 
         while ((s = br.readLine()) != null)
         {
             s = s.trim();
+
+            if (!s.isEmpty())
+            {
+                whitelistFileList.add(s);
+            }
+        }
+
+        Map<String, String> remoteFiles = new HashMap<>();
+
+        connection = (HttpURLConnection) Settings.COMPRESSED_FILES_LIST_URL.openConnection();
+        connection.setRequestMethod("GET");
+
+        br = new BufferedReader(new InputStreamReader(new GZIPInputStream(connection.getInputStream())));
+        String fileName, hash;
+
+        while ((s = br.readLine()) != null)
+        {
+            s = s.trim();
+
+            if (s.isEmpty())
+            {
+                continue;
+            }
 
             int idx = s.indexOf(':');
 
@@ -394,7 +446,7 @@ public class LauncherUI
                 String name = URLDecoder.decode(entry.getKey(), StandardCharsets.UTF_8.name());
 
                 File file = new File(Settings.GAME_DIRECTORY, name);
-                URL url = new URL(Settings.FILES_URL.toString() + name);
+                URL url = new URL(Settings.FILES_URL.toString() + name + ".gz");
 
                 try
                 {
@@ -408,7 +460,7 @@ public class LauncherUI
                     return false;*/
                 }
 
-                downloader = new URLFileDownloader(url, file);
+                downloader = new GZIPFileDownloader(url, file);
                 downloader = new VerifiyFileDownloader((FileDownloader) downloader, new MessageDigestFileVerifier(MessageDigestFileVerifier.SHA_1, entry.getValue()));
 
                 downloaders.add(downloader);
@@ -434,14 +486,16 @@ public class LauncherUI
                         {
                             updatingStatus = true;
 
-                            String text = "กำลังดาวน์โหลด " + file.getName() + ", " + overallPercentage + "%";
+                            String text = "กำลังดาวน์โหลด " + file.getName();
+                            String progressBarText = overallPercentage + "%";
 
                             if (fileDownloaded > 0 && fileSize > 0)
                             {
-                                text += ", " + Util.convertUnit(fileDownloaded) + "B/" + Util.convertUnit(fileSize) + "B";
+                                progressBarText += ", " + Util.convertUnit(fileDownloaded) + "B/" + Util.convertUnit(fileSize) + "B";
                             }
 
                             statusLabel.setText(text);
+                            statusProgressBar.setString(progressBarText);
                             statusProgressBar.setValue(overallPercentage);
 
                             updatingStatus = false;
@@ -463,19 +517,26 @@ public class LauncherUI
 
             startWatchDirectoryChanges();
 
-            Path filePathRelativize;
+            String filePathRelativize;
+            String filePathRelativizeURI;
 
             for (File file : localFiles)
             {
                 file = file.getAbsoluteFile();
-                filePathRelativize = gameDirectoryPath.relativize(file.toPath());
+                filePathRelativize = gameDirectoryPath.relativize(file.toPath()).toString();
+                filePathRelativizeURI = filePathRelativize.replace(File.separatorChar, '/');
 
-                if (!remoteFiles.containsKey(filePathRelativize.toString().replace(File.separatorChar, '/')))
+                if (whitelistFileList.contains(filePathRelativizeURI + (file.isDirectory() ? File.separator : "")))
+                {
+                    continue;
+                }
+
+                if (!remoteFiles.containsKey(filePathRelativizeURI))
                 {
                     if (file.exists() && !FileUtil.deleteFileRescursive(file))
                     {
                         Settings.LOGGER.error("Can't delete " + file.toString());
-                        JOptionPane.showMessageDialog(null, "ไม่สามารถลบไฟล์ได้", "ข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
+                        JOptionPane.showMessageDialog(null, "ไม่สามารถลบไฟล์ได้ (" + filePathRelativizeURI + ")", "ข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
                         return false;
                     }
                 }
@@ -539,7 +600,7 @@ public class LauncherUI
 
         gameLauncher.addJVMArgument("-XX:HeapDumpPath=MojangTricksIntelDriversForPerformance_javaw.exe_minecraft.exe.heapdump");
         gameLauncher.addJVMArgument("-XX:+UseConcMarkSweepGC");
-        gameLauncher.addJVMArgument("XX:+CMSIncrementalMode");
+        gameLauncher.addJVMArgument("-XX:+CMSIncrementalMode");
         gameLauncher.addJVMArgument("-XX:-UseAdaptiveSizePolicy");
 
         gameLauncher.setMaxMemorySize(1024);
