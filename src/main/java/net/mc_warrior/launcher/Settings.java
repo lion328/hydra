@@ -51,7 +51,7 @@ public class Settings
         {
             try
             {
-                new File(Main.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath());
+                workingJar = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath());
             }
             catch (URISyntaxException e)
             {
