@@ -1,6 +1,5 @@
 package net.mc_warrior.launcher;
 
-import com.lion328.xenonlauncher.settings.LauncherConstant;
 import com.lion328.xenonlauncher.util.OS;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -15,13 +14,9 @@ public class Settings
 
     public static final Logger LOGGER = LogManager.getLogger("MCWarrior-Launcher");
     public static final boolean IGNORE_LAUNCHER_UPDATER;
-
-    private static File workingJar;
-
     public static final String LAUNCHER_VERSION = "0.1.3";
     public static final String GAME_VERSION_NAME = "MCWarrior";
     public static final File GAME_DIRECTORY = new File(OS.getApplicationDataDirectory(), "mc-warrior");
-
     public static final URL WEBSITE_URL = constantURL("http://mc-warrior.net");
     public static final URL REGISTER_URL = constantURL("http://mc-warrior.net/?page=register");
     public static final URL NEWS_IMAGE_URL = constantURL("http://mc-warrior.net/launcher/news.png");
@@ -31,6 +26,12 @@ public class Settings
     public static final URL WHITELIST_FILES_URL = constantURL("http://mc-warrior.net/launcher/whitelist.txt");
     public static final URL REMOTE_LAUNCHER_URL = constantURL("http://mc-warrior.net/launcher/launcher.exe");
     public static final URL REMOTE_LAUNCHER_VERSION_URL = constantURL("http://mc-warrior.net/launcher/launcher_version");
+    private static File workingJar;
+
+    static
+    {
+        IGNORE_LAUNCHER_UPDATER = Boolean.parseBoolean(System.getProperty("net.mc_warrior.launcher.ignoreLauncherUpdater"));
+    }
 
     public static URL constantURL(String s)
     {
@@ -65,10 +66,5 @@ public class Settings
     public static void setWorkingJar(File file)
     {
         workingJar = file;
-    }
-
-    static
-    {
-        IGNORE_LAUNCHER_UPDATER = Boolean.parseBoolean(System.getProperty("net.mc_warrior.launcher.ignoreLauncherUpdater"));
     }
 }

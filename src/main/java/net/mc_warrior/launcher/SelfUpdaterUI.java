@@ -2,22 +2,16 @@ package net.mc_warrior.launcher;
 
 import com.lion328.xenonlauncher.downloader.Downloader;
 import com.lion328.xenonlauncher.downloader.DownloaderCallback;
-import com.lion328.xenonlauncher.downloader.URLFileDownloader;
 
 import javax.imageio.ImageIO;
 import javax.swing.JButton;
-import javax.swing.JFormattedTextField;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
 import javax.swing.SwingUtilities;
-import javax.swing.UIManager;
-import javax.swing.UnsupportedLookAndFeelException;
-import javax.swing.text.NumberFormatter;
 import java.awt.Color;
-import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
@@ -26,10 +20,8 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.awt.event.WindowListener;
 import java.io.File;
 import java.io.IOException;
-import java.text.NumberFormat;
 
 public class SelfUpdaterUI
 {

@@ -30,9 +30,13 @@ import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
 import javax.swing.border.Border;
 import javax.swing.plaf.FontUIResource;
-import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Cursor;
+import java.awt.Desktop;
+import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.FontFormatException;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
@@ -55,9 +59,7 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -337,7 +339,8 @@ public class LauncherUI
 
         statusLabel.setText("กำลังดาวน์โหลด");
 
-        new Thread() {
+        new Thread()
+        {
 
             @Override
             public void run()
@@ -463,7 +466,7 @@ public class LauncherUI
         String s;
         StringBuilder sb = new StringBuilder();
 
-        while((s = br.readLine()) != null)
+        while ((s = br.readLine()) != null)
         {
             sb.append(s);
         }
@@ -662,7 +665,7 @@ public class LauncherUI
             byte[] buffer = new byte[8192];
             int length;
 
-            while((length = in.read(buffer)) != -1)
+            while ((length = in.read(buffer)) != -1)
             {
                 out.write(buffer, 0, length);
             }
