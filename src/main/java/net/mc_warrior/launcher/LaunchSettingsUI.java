@@ -1,59 +1,108 @@
 package net.mc_warrior.launcher;
 
-import javax.swing.JFormattedTextField;
+import javax.swing.JButton;
+import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JSpinner;
+import javax.swing.SpinnerNumberModel;
 import javax.swing.text.NumberFormatter;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.text.NumberFormat;
 
 public class LaunchSettingsUI
 {
 
-    private JFrame frame;
+    private JDialog dialog;
+    private JFrame mainFrame;
     private PlayerSettings playerSettings;
 
-    public LaunchSettingsUI(PlayerSettings playerSettings)
+    public LaunchSettingsUI(PlayerSettings playerSettings, JFrame mainFrame)
     {
         this.playerSettings = playerSettings;
+        this.mainFrame = mainFrame;
+
+        init();
     }
 
-    public void start()
+    private void init()
     {
         NumberFormatter formatter = new NumberFormatter(NumberFormat.getIntegerInstance());
         formatter.setValueClass(Integer.class);
         formatter.setAllowsInvalid(false);
-        formatter.setMaximum(0);
+        formatter.setMinimum(512);
 
-        JFormattedTextField memoryTextField = new JFormattedTextField();
+        SpinnerNumberModel spinnerNumberModel = new SpinnerNumberModel();
+        spinnerNumberModel.setMinimum(512);
+        spinnerNumberModel.setStepSize(1);
+        spinnerNumberModel.setValue(playerSettings.getMaximumMemory());
 
+        final JSpinner spinner = new JSpinner(spinnerNumberModel);
+
+        JButton okButton = new JButton("ตกลง");
+        okButton.addActionListener(new ActionListener()
+        {
+            @Override
+            public void actionPerformed(ActionEvent e)
+            {
+                playerSettings.setMaximumMemory((int) spinner.getValue());
+                dialog.setVisible(false);
+            }
+        });
+
+        JButton cancelButton = new JButton("ยกเลิก");
+        cancelButton.addActionListener(new ActionListener()
+        {
+            @Override
+            public void actionPerformed(ActionEvent e)
+            {
+                dialog.setVisible(false);
+            }
+        });
 
         JPanel panel = new JPanel();
         panel.setLayout(new GridBagLayout());
 
         GridBagConstraints constraints = new GridBagConstraints();
-        constraints.insets = new Insets(10, 10, 10, 10);
+        constraints.insets = new Insets(5, 5, 5, 5);
 
         constraints.gridx = 0;
         constraints.gridy = 0;
+        constraints.fill = GridBagConstraints.BOTH;
         panel.add(new JLabel("หน่วยความจำที่ใช้ (MiB)"), constraints);
 
         constraints.gridx = 1;
-        //panel.add();
+        constraints.gridwidth = 2;
+        panel.add(spinner, constraints);
 
-        JFrame frame = new JFrame();
-        frame.setLocationRelativeTo(null);
-        frame.setContentPane(panel);
-        frame.pack();
-        frame.setVisible(true);
+        constraints.gridx = 1;
+        constraints.gridy = 1;
+        constraints.gridwidth = 1;
+        panel.add(okButton, constraints);
+
+        constraints.gridx = 2;
+        panel.add(cancelButton, constraints);
+
+        dialog = new JDialog(mainFrame, "การตั้งค่า", true);
+        dialog.setLocationRelativeTo(null);
+        dialog.setContentPane(panel);
+        dialog.getRootPane().setDefaultButton(okButton);
+        dialog.pack();
     }
 
-    public JFrame getJFrame()
+    public void start()
     {
-        return frame;
+        dialog.setVisible(true);
+    }
+
+    public JDialog getDialog()
+    {
+        return dialog;
     }
 
     public PlayerSettings getPlayerSettings()

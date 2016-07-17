@@ -5,7 +5,7 @@ public class Main
 
     public static void main(String[] args)
     {
-        LauncherUI ui = new LauncherUI(null);
+        LauncherUI ui = new LauncherUI();
         ui.start();
     }
 }

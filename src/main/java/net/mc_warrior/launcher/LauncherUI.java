@@ -1,5 +1,6 @@
 package net.mc_warrior.launcher;
 
+import com.google.gson.Gson;
 import com.lion328.xenonlauncher.downloader.Downloader;
 import com.lion328.xenonlauncher.downloader.DownloaderCallback;
 import com.lion328.xenonlauncher.downloader.FileDownloader;
@@ -25,6 +26,7 @@ import javax.swing.JPanel;
 import javax.swing.JPasswordField;
 import javax.swing.JProgressBar;
 import javax.swing.JTextField;
+import javax.swing.SwingConstants;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
@@ -48,6 +50,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -69,7 +72,8 @@ import java.util.zip.GZIPInputStream;
 public class LauncherUI
 {
 
-    private LaunchSettingsUI launchSettingsUI;
+    private final File settingsFile = new File(Settings.GAME_DIRECTORY, "launcher_settings.json");
+    private PlayerSettings settings;
 
     private JFrame mainFrame;
     private JTextField usernameField;
@@ -80,9 +84,37 @@ public class LauncherUI
     private boolean launching = false;
     private boolean updatingStatus = false;
 
-    public LauncherUI(LaunchSettingsUI launchSettingsUI)
+    public LauncherUI()
     {
-        this.launchSettingsUI = launchSettingsUI;
+        if (settingsFile.isFile())
+        {
+            Gson gson = new Gson();
+            try
+            {
+                settings = gson.fromJson(new FileReader(settingsFile), PlayerSettings.class);
+
+                if (settings != null)
+                {
+                    if (settings.getMaximumMemory() == 0)
+                    {
+                        settings.setMaximumMemory(1024);
+                    }
+
+                    if (settings.getPlayerName() == null)
+                    {
+                        settings.setPlayerName("");
+                    }
+
+                    return;
+                }
+            }
+            catch (FileNotFoundException ignore)
+            {
+
+            }
+        }
+
+        settings = new PlayerSettings("", 1024);
     }
 
     public void start()
@@ -182,17 +214,19 @@ public class LauncherUI
         mainFrame = new JFrame();
         mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 
-        JPanel panel;
+        JPanel tmpPanel;
 
         try
         {
-            panel = new ImagePanel(ImageIO.read(Settings.class.getResourceAsStream("/net/mc_warrior/launcher/resources/launcher_bg.png")));
+            tmpPanel = new ImagePanel(ImageIO.read(Settings.class.getResourceAsStream("/net/mc_warrior/launcher/resources/launcher_bg.png")));
         }
         catch (IOException e)
         {
             Settings.LOGGER.catching(e);
-            panel = new JPanel();
+            tmpPanel = new JPanel();
         }
+
+        final JPanel panel = tmpPanel;
 
         panel.setLayout(null);
         //panel.setSize(800, 500);
@@ -209,9 +243,9 @@ public class LauncherUI
         {
             mainFrame.setIconImage(ImageIO.read(this.getClass().getResourceAsStream("/net/mc_warrior/launcher/resources/favicon.png")));
         }
-        catch (IOException ignore)
+        catch (IOException e)
         {
-
+            Settings.LOGGER.catching(e);
         }
 
         usernameField = new JTextField();
@@ -219,8 +253,8 @@ public class LauncherUI
         statusLabel = new JLabel();
         statusProgressBar = new JProgressBar();
 
-        usernameField.setBounds(600, 66, 180, 26);
-        passwordField.setBounds(600, 114, 180, 26);
+        usernameField.setBounds(599, 70, 180, 32);
+        passwordField.setBounds(599, 135, 180, 32);
         statusLabel.setBounds(75, 431, 700, 20);
         statusProgressBar.setBounds(15, 460, 545, 27);
 
@@ -245,6 +279,7 @@ public class LauncherUI
 
         statusLabel.setForeground(Color.WHITE);
         statusProgressBar.setStringPainted(true);
+        usernameField.setText(settings.getPlayerName());
 
         panel.add(usernameField);
         panel.add(passwordField);
@@ -253,14 +288,19 @@ public class LauncherUI
 
         JPanel launchButton = new JPanel();
         JPanel registerButton = new JPanel();
+        JPanel settingsButton = new JPanel();
 
-        launchButton.setBounds(598, 154, 89, 32);
+        launchButton.setBounds(599, 184, 75, 32);
         launchButton.setOpaque(false);
         launchButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
-        registerButton.setBounds(700, 162, 81, 32);
+        registerButton.setBounds(701, 192, 81, 32);
         registerButton.setOpaque(false);
         registerButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
+
+        settingsButton.setBounds(674, 184, 13, 33);
+        settingsButton.setOpaque(false);
+        settingsButton.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
 
         launchButton.addMouseListener(new MouseAdapter()
         {
@@ -292,8 +332,42 @@ public class LauncherUI
             }
         });
 
+        settingsButton.addMouseListener(new MouseAdapter()
+        {
+
+            @Override
+            public void mouseClicked(MouseEvent e)
+            {
+                settingsButton();
+            }
+        });
+
         panel.add(launchButton);
         panel.add(registerButton);
+        panel.add(settingsButton);
+
+        JLabel versionLabel = new JLabel(Settings.LAUNCHER_VERSION, SwingConstants.RIGHT);
+        versionLabel.setBounds(600, 475, 190, 20);
+        panel.add(versionLabel);
+
+        SwingUtilities.invokeLater(new Runnable()
+        {
+
+            @Override
+            public void run()
+            {
+                try
+                {
+                    JPanel newsPanel = new ImagePanel(ImageIO.read(Settings.NEWS_IMAGE_URL));
+                    newsPanel.setBounds(28, 20, 525, 375);
+                    panel.add(newsPanel);
+                }
+                catch (IOException e)
+                {
+                    Settings.LOGGER.catching(e);
+                }
+            }
+        });
 
         resetUI();
 
@@ -326,16 +400,19 @@ public class LauncherUI
         catch (IOException e)
         {
             Settings.LOGGER.catching(e);
-            JOptionPane.showMessageDialog(null, "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้", "เกิดข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(mainFrame, "ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้", "เกิดข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
         }
 
         if (!validAuth)
         {
-            JOptionPane.showMessageDialog(null, "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง กรุณากรอกใหม่", "เกิดข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(mainFrame, "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง กรุณากรอกใหม่", "เกิดข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
             resetUI();
             passwordField.grabFocus();
             return;
         }
+
+        settings.setPlayerName(usernameField.getText());
+        saveSettings();
 
         statusLabel.setText("กำลังดาวน์โหลด");
 
@@ -356,7 +433,7 @@ public class LauncherUI
                 catch (IOException e)
                 {
                     Settings.LOGGER.catching(e);
-                    JOptionPane.showMessageDialog(null, "ไม่สามารถดาวน์โหลดเกมได้ กรุณาลองใหม่ภายหลัง", "เกิดข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(mainFrame, "ไม่สามารถดาวน์โหลดเกมได้ กรุณาลองใหม่ภายหลัง", "เกิดข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
                     resetUI();
                     return;
                 }
@@ -429,6 +506,13 @@ public class LauncherUI
                 System.exit(0);
             }
         }.start();
+    }
+
+    public void settingsButton()
+    {
+        LaunchSettingsUI ui = new LaunchSettingsUI(settings, mainFrame);
+        ui.getDialog().setLocationRelativeTo(mainFrame);
+        ui.start();
     }
 
     public void resetUI()
@@ -522,7 +606,7 @@ public class LauncherUI
         if (!Settings.GAME_DIRECTORY.exists() && !Settings.GAME_DIRECTORY.mkdirs())
         {
             Settings.LOGGER.error("Can't create " + Settings.GAME_DIRECTORY);
-            JOptionPane.showMessageDialog(null, "ไม่สามารถสร้างโฟลเดอร์เกมได้", "ข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(mainFrame, "ไม่สามารถสร้างโฟลเดอร์เกมได้", "ข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
             return false;
         }
         else
@@ -547,7 +631,7 @@ public class LauncherUI
                 catch (URISyntaxException e)
                 {
                     Settings.LOGGER.catching(e);
-                    /*JOptionPane.showMessageDialog(null, "ไม่สามารถสร้าง URI ได้", "เกิดข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
+                    /*JOptionPane.showMessageDialog(mainFrame, "ไม่สามารถสร้าง URI ได้", "เกิดข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
                     return false;*/
                 }
 
@@ -602,7 +686,7 @@ public class LauncherUI
             if (localFiles == null)
             {
                 Settings.LOGGER.error("Can't list " + Settings.GAME_DIRECTORY);
-                JOptionPane.showMessageDialog(null, "ไม่สามารถอ่านโฟลเดอร์เกมได้", "ข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(mainFrame, "ไม่สามารถอ่านโฟลเดอร์เกมได้", "ข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
                 return false;
             }
 
@@ -610,6 +694,8 @@ public class LauncherUI
 
             String filePathRelativize;
             String filePathRelativizeURI;
+
+            statusLabel.setText("กำลังตรวจสอบความถูกต้องของไฟล์เกม");
 
             for (File file : localFiles)
             {
@@ -627,7 +713,7 @@ public class LauncherUI
                     if (file.exists() && !FileUtil.deleteFileRescursive(file))
                     {
                         Settings.LOGGER.error("Can't delete " + file.toString());
-                        JOptionPane.showMessageDialog(null, "ไม่สามารถลบไฟล์ได้ (" + filePathRelativizeURI + ")", "ข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
+                        JOptionPane.showMessageDialog(mainFrame, "ไม่สามารถลบไฟล์ได้ (" + filePathRelativizeURI + ")", "ข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
                         return false;
                     }
                 }
@@ -706,7 +792,7 @@ public class LauncherUI
         catch (FileNotFoundException e)
         {
             Settings.LOGGER.catching(e);
-            JOptionPane.showMessageDialog(null, "ไม่มีข้อมูลการเปิดเกม กรุณาติดต่อผู้ดูแลระบบ", "เกิดข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(mainFrame, "ไม่มีข้อมูลการเปิดเกม กรุณาติดต่อผู้ดูแลระบบ", "เกิดข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
             return null;
         }
 
@@ -730,7 +816,7 @@ public class LauncherUI
         catch (LauncherVersionException e)
         {
             Settings.LOGGER.catching(e);
-            JOptionPane.showMessageDialog(null, "ไม่สามารถอ่านข้อมูลในการเปิดเกมได้ กรุณาติดต่อผู้ดูแลระบบ", "เกิดข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(mainFrame, "ไม่สามารถอ่านข้อมูลในการเปิดเกมได้ กรุณาติดต่อผู้ดูแลระบบ", "เกิดข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
             return null;
         }
 
@@ -739,7 +825,7 @@ public class LauncherUI
         gameLauncher.addJVMArgument("-XX:+CMSIncrementalMode");
         gameLauncher.addJVMArgument("-XX:-UseAdaptiveSizePolicy");
 
-        gameLauncher.setMaxMemorySize(1024);
+        gameLauncher.setMaxMemorySize(settings.getMaximumMemory());
         gameLauncher.setUserInformation(new UserInformation("1234", usernameField.getText(), "1234", "1234"));
 
         try
@@ -749,7 +835,7 @@ public class LauncherUI
         catch (Exception e)
         {
             Settings.LOGGER.catching(e);
-            JOptionPane.showMessageDialog(null, "ไม่สามาถเปิดเกมได้", "เกิดข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
+            JOptionPane.showMessageDialog(mainFrame, "ไม่สามาถเปิดเกมได้", "เกิดข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
             return null;
         }
     }
@@ -757,5 +843,19 @@ public class LauncherUI
     public void startWatchDirectoryChanges()
     {
 
+    }
+
+    public void saveSettings()
+    {
+        try
+        {
+            FileWriter writer = new FileWriter(settingsFile);
+            new Gson().toJson(settings, writer);
+            writer.close();
+        }
+        catch (IOException e)
+        {
+            Settings.LOGGER.catching(e);
+        }
     }
 }

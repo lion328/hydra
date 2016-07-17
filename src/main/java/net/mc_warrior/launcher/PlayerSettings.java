@@ -14,6 +14,11 @@ public class PlayerSettings
     @SerializedName("maximumMemory")
     private int maximumMemory;
 
+    public PlayerSettings(String playerName, int maximumMemory)
+    {
+        this(VERSION, playerName, maximumMemory);
+    }
+
     public PlayerSettings(int version, String playerName, int maximumMemory)
     {
         this.version = version;
