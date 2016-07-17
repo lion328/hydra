@@ -18,7 +18,7 @@ public class Settings
 
     private static File workingJar;
 
-    public static final String LAUNCHER_VERSION = "0.1.2";
+    public static final String LAUNCHER_VERSION = "0.1.3";
     public static final String GAME_VERSION_NAME = "MCWarrior";
     public static final File GAME_DIRECTORY = new File(OS.getApplicationDataDirectory(), "mc-warrior");
 

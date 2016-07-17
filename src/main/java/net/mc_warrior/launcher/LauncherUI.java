@@ -17,6 +17,7 @@ import com.lion328.xenonlauncher.minecraft.launcher.json.exception.LauncherVersi
 import com.lion328.xenonlauncher.util.FileUtil;
 
 import javax.imageio.ImageIO;
+import javax.swing.BorderFactory;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -27,7 +28,14 @@ import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import javax.swing.UnsupportedLookAndFeelException;
+import javax.swing.border.Border;
+import javax.swing.plaf.FontUIResource;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.BufferedReader;
@@ -77,6 +85,75 @@ public class LauncherUI
 
     public void start()
     {
+        try
+        {
+            for (UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels())
+            {
+                if (info.getName().equals("Metal"))
+                {
+                    UIManager.setLookAndFeel(info.getClassName());
+                }
+            }
+
+            //UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        }
+        catch (ClassNotFoundException | UnsupportedLookAndFeelException | InstantiationException | IllegalAccessException e)
+        {
+            Settings.LOGGER.catching(e);
+        }
+
+        try
+        {
+            Font defaultFont = Font.createFont(Font.TRUETYPE_FONT, getClass().getResourceAsStream("/net/mc_warrior/launcher/resources/CSChatThaiUI.ttf"));
+            FontUIResource fontUIResource = new FontUIResource(defaultFont.deriveFont(Font.PLAIN, 14));
+
+            /*for (Map.Entry<Object, Object> entry : UIManager.getDefaults().entrySet())
+            {
+                if (entry.getValue() instanceof FontUIResource)
+                {
+                    UIManager.put(entry.getKey(), fontUIResource);
+                }
+            }*/
+            UIManager.put("Button.font", fontUIResource);
+            UIManager.put("ToggleButton.font", fontUIResource);
+            UIManager.put("RadioButton.font", fontUIResource);
+            UIManager.put("CheckBox.font", fontUIResource);
+            UIManager.put("ColorChooser.font", fontUIResource);
+            UIManager.put("ComboBox.font", fontUIResource);
+            UIManager.put("Label.font", fontUIResource);
+            UIManager.put("List.font", fontUIResource);
+            UIManager.put("MenuBar.font", fontUIResource);
+            UIManager.put("MenuItem.font", fontUIResource);
+            UIManager.put("RadioButtonMenuItem.font", fontUIResource);
+            UIManager.put("CheckBoxMenuItem.font", fontUIResource);
+            UIManager.put("Menu.font", fontUIResource);
+            UIManager.put("PopupMenu.font", fontUIResource);
+            UIManager.put("OptionPane.font", fontUIResource);
+            UIManager.put("Panel.font", fontUIResource);
+            UIManager.put("ProgressBar.font", fontUIResource);
+            UIManager.put("ScrollPane.font", fontUIResource);
+            UIManager.put("Viewport.font", fontUIResource);
+            UIManager.put("TabbedPane.font", fontUIResource);
+            UIManager.put("Table.font", fontUIResource);
+            UIManager.put("TableHeader.font", fontUIResource);
+            UIManager.put("TextField.font", fontUIResource);
+            UIManager.put("PasswordField.font", fontUIResource);
+            UIManager.put("TextArea.font", fontUIResource);
+            UIManager.put("TextPane.font", fontUIResource);
+            UIManager.put("EditorPane.font", fontUIResource);
+            UIManager.put("TitledBorder.font", fontUIResource);
+            UIManager.put("ToolBar.font", fontUIResource);
+            UIManager.put("ToolTip.font", fontUIResource);
+            UIManager.put("Tree.font", fontUIResource);
+        }
+        catch (FontFormatException | IOException e)
+        {
+            Settings.LOGGER.catching(e);
+        }
+
+        UIManager.put("ProgressBar.selectionBackground", Color.GRAY);
+        UIManager.put("ProgressBar.foreground", new Color(0x0EB600));
+
         if (!Settings.IGNORE_LAUNCHER_UPDATER)
         {
             boolean needUpdate = false;
@@ -99,18 +176,6 @@ public class LauncherUI
                 //System.exit(0);
             }
         }
-
-        try
-        {
-            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-        }
-        catch (ClassNotFoundException | UnsupportedLookAndFeelException | InstantiationException | IllegalAccessException e)
-        {
-            Settings.LOGGER.catching(e);
-        }
-
-        UIManager.put("ProgressBar.selectionBackground", Color.GRAY);
-        UIManager.put("ProgressBar.foreground", new Color(0x0EB600));
 
         mainFrame = new JFrame();
         mainFrame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -138,15 +203,43 @@ public class LauncherUI
         mainFrame.setResizable(false);
         mainFrame.setTitle("MC-Warrior Launcher");
 
+        try
+        {
+            mainFrame.setIconImage(ImageIO.read(this.getClass().getResourceAsStream("/net/mc_warrior/launcher/resources/favicon.png")));
+        }
+        catch (IOException ignore)
+        {
+
+        }
+
         usernameField = new JTextField();
         passwordField = new JPasswordField();
         statusLabel = new JLabel();
         statusProgressBar = new JProgressBar();
 
-        usernameField.setBounds(600, 68, 180, 23);
-        passwordField.setBounds(600, 116, 180, 23);
+        usernameField.setBounds(600, 66, 180, 26);
+        passwordField.setBounds(600, 114, 180, 26);
         statusLabel.setBounds(75, 431, 700, 20);
-        statusProgressBar.setBounds(15, 460, 545, 30);
+        statusProgressBar.setBounds(15, 460, 545, 27);
+
+        Border border = BorderFactory.createEmptyBorder(0, 5, 0, 5);
+        usernameField.setBorder(border);
+        passwordField.setBorder(border);
+
+        KeyListener keyListener = new KeyAdapter()
+        {
+
+            @Override
+            public void keyPressed(KeyEvent e)
+            {
+                if (e.getKeyCode() == KeyEvent.VK_ENTER)
+                {
+                    launchButton();
+                }
+            }
+        };
+        usernameField.addKeyListener(keyListener);
+        passwordField.addKeyListener(keyListener);
 
         statusLabel.setForeground(Color.WHITE);
         statusProgressBar.setStringPainted(true);
@@ -238,6 +331,7 @@ public class LauncherUI
         {
             JOptionPane.showMessageDialog(null, "ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง กรุณากรอกใหม่", "เกิดข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
             resetUI();
+            passwordField.grabFocus();
             return;
         }
 
@@ -338,6 +432,7 @@ public class LauncherUI
     {
         usernameField.setEnabled(true);
         passwordField.setEnabled(true);
+        passwordField.setText("");
 
         statusProgressBar.setString("0%");
         statusProgressBar.setValue(0);

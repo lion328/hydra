@@ -4,6 +4,7 @@ import com.lion328.xenonlauncher.downloader.Downloader;
 import com.lion328.xenonlauncher.downloader.DownloaderCallback;
 import com.lion328.xenonlauncher.downloader.URLFileDownloader;
 
+import javax.imageio.ImageIO;
 import javax.swing.JButton;
 import javax.swing.JFormattedTextField;
 import javax.swing.JFrame;
@@ -57,7 +58,7 @@ public class SelfUpdaterUI
         progressBar.setValue(0);
 
         JLabel label = new JLabel("กำลังดาวน์โหลด...");
-        label.setForeground(Color.LIGHT_GRAY);
+        label.setForeground(Color.DARK_GRAY);
 
         JButton cancelButton = new JButton("ยกเลิก");
         cancelButton.addMouseListener(new MouseAdapter()
@@ -72,7 +73,7 @@ public class SelfUpdaterUI
 
         JPanel panel = new JPanel();
         panel.setLayout(new GridBagLayout());
-        panel.setBackground(Color.DARK_GRAY);
+        panel.setBackground(Color.WHITE);
 
         GridBagConstraints constraints = new GridBagConstraints();
         constraints.insets = new Insets(10, 10, 10, 10);
@@ -107,6 +108,16 @@ public class SelfUpdaterUI
         frame.setSize(400, 100);
         frame.setContentPane(panel);
         frame.setResizable(false);
+
+        try
+        {
+            frame.setIconImage(ImageIO.read(this.getClass().getResourceAsStream("/net/mc_warrior/launcher/resources/favicon.png")));
+        }
+        catch (IOException ignore)
+        {
+
+        }
+
         frame.setTitle("MC-Warrior - กำลังปรับปรุง Launcher");
         frame.pack();
         frame.setVisible(true);
