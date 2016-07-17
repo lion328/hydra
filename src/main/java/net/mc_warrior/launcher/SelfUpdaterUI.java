@@ -33,7 +33,6 @@ import java.text.NumberFormat;
 public class SelfUpdaterUI
 {
 
-    private File jarFile;
     private Downloader downloader;
     private JProgressBar progressBar;
     private Thread thread;
@@ -41,9 +40,8 @@ public class SelfUpdaterUI
     private boolean state;
     private boolean forceStop;
 
-    public SelfUpdaterUI(File jarFile, Downloader downloader)
+    public SelfUpdaterUI(Downloader downloader)
     {
-        this.jarFile = jarFile;
         this.downloader = downloader;
 
         init();

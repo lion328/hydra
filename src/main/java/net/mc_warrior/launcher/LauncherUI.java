@@ -32,10 +32,14 @@ import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -43,7 +47,9 @@ import java.net.URL;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -88,20 +94,7 @@ public class LauncherUI
 
             if (needUpdate)
             {
-                try
-                {
-                    if (!updateSelf())
-                    {
-                        JOptionPane.showMessageDialog(null, "ไม่สามารถปรับปรุง Launcher ได้", "เกิดข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
-                        System.exit(-1);
-                    }
-                }
-                catch (InterruptedException e)
-                {
-                    Settings.LOGGER.catching(e);
-                    JOptionPane.showMessageDialog(null, "ไม่สามารถปรับปรุง Launcher ได้ (InterruptedException)", "เกิดข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
-                    System.exit(-1);
-                }
+                updateSelf();
                 //JOptionPane.showMessageDialog(null, "Launcher ล้าหลัง กรุณาดาวน์โหลดใหม่ได้ที่ " + Settings.WEBSITE_URL.toString(), "Launcher ล้าหลัง", JOptionPane.INFORMATION_MESSAGE);
                 //System.exit(0);
             }
@@ -551,11 +544,56 @@ public class LauncherUI
         return !Util.httpGET(Settings.REMOTE_LAUNCHER_VERSION_URL).trim().equals(Settings.LAUNCHER_VERSION);
     }
 
-    public boolean updateSelf() throws InterruptedException
+    public void updateSelf()
     {
-        SelfUpdaterUI updaterUI = new SelfUpdaterUI(Settings.getWorkingJar(), new URLFileDownloader(Settings.REMOTE_LAUNCHER_URL, Settings.getWorkingJar()));
-        updaterUI.start();
-        return updaterUI.waitFor();
+        try
+        {
+            File workingJar = Settings.getWorkingJar();
+            File tmpFile = File.createTempFile(workingJar.getName(), ".tmp");
+            tmpFile.deleteOnExit();
+
+            SelfUpdaterUI updaterUI = new SelfUpdaterUI(new URLFileDownloader(Settings.REMOTE_LAUNCHER_URL, tmpFile));
+            updaterUI.start();
+
+            if (!updaterUI.waitFor())
+            {
+                JOptionPane.showMessageDialog(null, "ไม่สามารถปรับปรุง Launcher ได้", "เกิดข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
+                System.exit(-1);
+            }
+
+            InputStream in = new FileInputStream(tmpFile);
+            OutputStream out = new FileOutputStream(workingJar);
+
+            byte[] buffer = new byte[8192];
+            int length;
+
+            while((length = in.read(buffer)) != -1)
+            {
+                out.write(buffer, 0, length);
+            }
+
+            out.close();
+            in.close();
+
+            ProcessBuilder pb = new ProcessBuilder();
+            pb.directory(workingJar.getParentFile());
+            pb.command(new File(System.getProperty("java.home"), "bin/java").getAbsolutePath(), "-jar", workingJar.getAbsolutePath());
+            pb.start();
+
+            System.exit(0);
+        }
+        catch (InterruptedException e)
+        {
+            Settings.LOGGER.catching(e);
+            JOptionPane.showMessageDialog(null, "ไม่สามารถปรับปรุง Launcher ได้ (InterruptedException)", "เกิดข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
+            System.exit(-1);
+        }
+        catch (IOException e)
+        {
+            Settings.LOGGER.catching(e);
+            JOptionPane.showMessageDialog(null, "ไม่สามารถปรับปรุง Launcher ได้ (IOException)", "เกิดข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
+            System.exit(-1);
+        }
     }
 
     public GameVersion getGameVersion(String version)
