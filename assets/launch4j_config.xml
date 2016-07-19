@@ -2,8 +2,8 @@
 <launch4jConfig>
   <dontWrapJar>false</dontWrapJar>
   <headerType>gui</headerType>
-  <jar>E:\Programming\Minecraft\mcwarrior-launcher\build\libs\mcwarrior-launcher-0.1.3-all-obf.jar</jar>
-  <outfile>E:\Programming\Minecraft\mcwarrior-launcher\build\libs\mcwarrior-launcher.exe</outfile>
+  <jar>E:\Programming\Minecraft\mcmafia-launcher\build\libs\mcmafia-launcher-0.1.4-all-obf.jar</jar>
+  <outfile>E:\Programming\Minecraft\mcmafia-launcher\build\libs\mcmafia-launcher.exe</outfile>
   <errTitle></errTitle>
   <cmdLine></cmdLine>
   <chdir>.</chdir>

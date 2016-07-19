@@ -1,4 +1,4 @@
-package net.mc_warrior.launcher;
+package net.mc_mafia.launcher;
 
 import com.google.gson.annotations.SerializedName;
 

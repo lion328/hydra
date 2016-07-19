@@ -1,4 +1,4 @@
-package net.mc_warrior.launcher;
+package net.mc_mafia.launcher;
 
 import com.lion328.xenonlauncher.downloader.Downloader;
 import com.lion328.xenonlauncher.downloader.DownloaderCallback;
@@ -103,14 +103,14 @@ public class SelfUpdaterUI
 
         try
         {
-            frame.setIconImage(ImageIO.read(this.getClass().getResourceAsStream("/net/mc_warrior/launcher/resources/favicon.png")));
+            frame.setIconImage(ImageIO.read(this.getClass().getResourceAsStream("/net/mc_mafia/launcher/resources/favicon.png")));
         }
         catch (IOException ignore)
         {
 
         }
 
-        frame.setTitle("MC-Warrior - กำลังปรับปรุง Launcher");
+        frame.setTitle("MC-Mafia - กำลังปรับปรุง Launcher");
         frame.pack();
         frame.setVisible(true);
 

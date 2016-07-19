@@ -3,6 +3,7 @@ package com.lion328.xenonlauncher.downloader;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -60,12 +61,13 @@ public class URLFileDownloader implements FileDownloader
             throw new IOException("Can't create directory (" + targetFile.getParentFile() + ")");
         }
 
+        InputStream in = buildInputStream(connection.getInputStream());
         OutputStream fileOut = new FileOutputStream(targetFile);
 
         byte[] buffer = new byte[bufferSize];
         int length;
 
-        while (running && ((length = connection.getInputStream().read(buffer)) != -1))
+        while (running && ((length = in.read(buffer)) != -1))
         {
             fileOut.write(buffer, 0, length);
             downloaded += length;
@@ -91,6 +93,11 @@ public class URLFileDownloader implements FileDownloader
     public URL getInputUrl()
     {
         return inputUrl;
+    }
+
+    protected InputStream buildInputStream(InputStream parent) throws IOException
+    {
+        return parent;
     }
 
     @Override

@@ -1,4 +1,4 @@
-package net.mc_warrior.launcher;
+package net.mc_mafia.launcher;
 
 import com.google.gson.Gson;
 import com.lion328.xenonlauncher.downloader.Downloader;
@@ -138,7 +138,7 @@ public class LauncherUI
 
         try
         {
-            Font defaultFont = Font.createFont(Font.TRUETYPE_FONT, getClass().getResourceAsStream("/net/mc_warrior/launcher/resources/CSChatThaiUI.ttf"));
+            Font defaultFont = Font.createFont(Font.TRUETYPE_FONT, getClass().getResourceAsStream("/net/mc_mafia/launcher/resources/CSChatThaiUI.ttf"));
             FontUIResource fontUIResource = new FontUIResource(defaultFont.deriveFont(Font.PLAIN, 14));
 
             /*for (Map.Entry<Object, Object> entry : UIManager.getDefaults().entrySet())
@@ -218,7 +218,7 @@ public class LauncherUI
 
         try
         {
-            tmpPanel = new ImagePanel(ImageIO.read(Settings.class.getResourceAsStream("/net/mc_warrior/launcher/resources/launcher_bg.png")));
+            tmpPanel = new ImagePanel(ImageIO.read(Settings.class.getResourceAsStream("/net/mc_mafia/launcher/resources/launcher_bg.png")));
         }
         catch (IOException e)
         {
@@ -237,11 +237,11 @@ public class LauncherUI
         mainFrame.setLayout(new BorderLayout());
         mainFrame.add(panel, BorderLayout.CENTER);
         mainFrame.setResizable(false);
-        mainFrame.setTitle("MC-Warrior Launcher");
+        mainFrame.setTitle("MC-Mafia Launcher");
 
         try
         {
-            mainFrame.setIconImage(ImageIO.read(this.getClass().getResourceAsStream("/net/mc_warrior/launcher/resources/favicon.png")));
+            mainFrame.setIconImage(ImageIO.read(this.getClass().getResourceAsStream("/net/mc_mafia/launcher/resources/favicon.png")));
         }
         catch (IOException e)
         {

@@ -1,4 +1,4 @@
-package net.mc_warrior.launcher;
+package net.mc_mafia.launcher;
 
 import com.lion328.xenonlauncher.downloader.URLFileDownloader;
 
