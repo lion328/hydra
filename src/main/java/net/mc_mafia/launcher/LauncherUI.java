@@ -7,7 +7,9 @@ import com.lion328.xenonlauncher.downloader.FileDownloader;
 import com.lion328.xenonlauncher.downloader.MultipleDownloader;
 import com.lion328.xenonlauncher.downloader.URLFileDownloader;
 import com.lion328.xenonlauncher.downloader.VerifiyFileDownloader;
+import com.lion328.xenonlauncher.downloader.verifier.FileVerifier;
 import com.lion328.xenonlauncher.downloader.verifier.MessageDigestFileVerifier;
+import com.lion328.xenonlauncher.downloader.verifier.MultipleFileVerifier;
 import com.lion328.xenonlauncher.minecraft.api.authentication.UserInformation;
 import com.lion328.xenonlauncher.minecraft.launcher.GameLauncher;
 import com.lion328.xenonlauncher.minecraft.launcher.json.JSONGameLauncher;
@@ -609,126 +611,122 @@ public class LauncherUI
             JOptionPane.showMessageDialog(mainFrame, "ไม่สามารถสร้างโฟลเดอร์เกมได้", "ข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
             return false;
         }
-        else
+
+        Path gameDirectoryPath = Settings.GAME_DIRECTORY.toPath();
+
+        List<Downloader> downloaders = new ArrayList<>();
+        Downloader downloader;
+        FileVerifier verifier;
+
+        WhitelistFileVerifier whitelistFileVerifier = new WhitelistFileVerifier(whitelistFileList, gameDirectoryPath);
+
+        for (Map.Entry<String, String> entry : remoteFiles.entrySet())
         {
-            Path gameDirectoryPath = Settings.GAME_DIRECTORY.toPath();
+            String name = URLDecoder.decode(entry.getKey(), StandardCharsets.UTF_8.name());
 
-            List<Downloader> downloaders = new ArrayList<>();
-            Downloader downloader;
+            File file = new File(Settings.GAME_DIRECTORY, name);
+            URL url = new URL(Settings.FILES_URL.toString() + name + ".gz");
 
-            for (Map.Entry<String, String> entry : remoteFiles.entrySet())
+            try
             {
-                String name = URLDecoder.decode(entry.getKey(), StandardCharsets.UTF_8.name());
-
-                File file = new File(Settings.GAME_DIRECTORY, name);
-                URL url = new URL(Settings.FILES_URL.toString() + name + ".gz");
-
-                try
-                {
-                    URI uri = new URI(url.getProtocol(), url.getUserInfo(), url.getHost(), url.getPort(), url.getPath(), url.getQuery(), url.getRef());
-                    url = new URL(uri.toURL().toString().replace("#", "%23"));
-                }
-                catch (URISyntaxException e)
-                {
-                    Settings.LOGGER.catching(e);
+                URI uri = new URI(url.getProtocol(), url.getUserInfo(), url.getHost(), url.getPort(), url.getPath(), url.getQuery(), url.getRef());
+                url = new URL(uri.toURL().toString().replace("#", "%23"));
+            }
+            catch (URISyntaxException e)
+            {
+                Settings.LOGGER.catching(e);
                     /*JOptionPane.showMessageDialog(mainFrame, "ไม่สามารถสร้าง URI ได้", "เกิดข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
                     return false;*/
-                }
-
-                downloader = new GZIPFileDownloader(url, file);
-                downloader = new VerifiyFileDownloader((FileDownloader) downloader, new MessageDigestFileVerifier(MessageDigestFileVerifier.SHA_1, entry.getValue()));
-
-                downloaders.add(downloader);
             }
 
-            downloader = new MultipleDownloader(downloaders);
+            verifier = new MessageDigestFileVerifier(MessageDigestFileVerifier.SHA_1, entry.getValue());
+            verifier = new MultipleFileVerifier(whitelistFileVerifier, verifier, MultipleFileVerifier.LOGIC_OR);
 
-            downloader.registerCallback(new DownloaderCallback()
+            downloader = new GZIPFileDownloader(url, file);
+            downloader = new VerifiyFileDownloader((FileDownloader) downloader, verifier);
+
+            downloaders.add(downloader);
+        }
+
+        downloader = new MultipleDownloader(downloaders);
+
+        downloader.registerCallback(new DownloaderCallback()
+        {
+
+            @Override
+            public void onPercentageChange(final File file, final int overallPercentage, final long fileSize, final long fileDownloaded)
             {
-
-                @Override
-                public void onPercentageChange(final File file, final int overallPercentage, final long fileSize, final long fileDownloaded)
+                if (updatingStatus)
                 {
-                    if (updatingStatus)
-                    {
-                        return;
-                    }
+                    return;
+                }
 
-                    SwingUtilities.invokeLater(new Runnable()
+                SwingUtilities.invokeLater(new Runnable()
+                {
+                    @Override
+                    public void run()
                     {
-                        @Override
-                        public void run()
+                        updatingStatus = true;
+
+                        String text = "กำลังดาวน์โหลด " + file.getName();
+                        String progressBarText = overallPercentage + "%";
+
+                        if (fileDownloaded > 0 && fileSize > 0)
                         {
-                            updatingStatus = true;
-
-                            String text = "กำลังดาวน์โหลด " + file.getName();
-                            String progressBarText = overallPercentage + "%";
-
-                            if (fileDownloaded > 0 && fileSize > 0)
-                            {
-                                progressBarText += ", " + Util.convertUnit(fileDownloaded) + "B/" + Util.convertUnit(fileSize) + "B";
-                            }
-
-                            statusLabel.setText(text);
-                            statusProgressBar.setString(progressBarText);
-                            statusProgressBar.setValue(overallPercentage);
-
-                            updatingStatus = false;
+                            progressBarText += ", " + Util.convertUnit(fileDownloaded) + "B/" + Util.convertUnit(fileSize) + "B";
                         }
-                    });
-                }
-            });
 
-            downloader.download();
+                        statusLabel.setText(text);
+                        statusProgressBar.setString(progressBarText);
+                        statusProgressBar.setValue(overallPercentage);
 
-            List<File> localFiles = Util.listFiles(Settings.GAME_DIRECTORY, false);
+                        updatingStatus = false;
+                    }
+                });
+            }
+        });
 
-            if (localFiles == null)
+        downloader.download();
+
+        List<File> localFiles = Util.listFiles(Settings.GAME_DIRECTORY, false);
+
+        if (localFiles == null)
+        {
+            Settings.LOGGER.error("Can't list " + Settings.GAME_DIRECTORY);
+            JOptionPane.showMessageDialog(mainFrame, "ไม่สามารถอ่านโฟลเดอร์เกมได้", "ข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+
+        startWatchDirectoryChanges();
+
+        String filePathRelativize;
+        String filePathRelativizeURI;
+        statusLabel.setText("กำลังตรวจสอบความถูกต้องของไฟล์เกม");
+
+        FILELOOP:
+        for (File file : localFiles)
+        {
+            if (file.isDirectory())
             {
-                Settings.LOGGER.error("Can't list " + Settings.GAME_DIRECTORY);
-                JOptionPane.showMessageDialog(mainFrame, "ไม่สามารถอ่านโฟลเดอร์เกมได้", "ข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
-                return false;
+                continue;
             }
 
-            startWatchDirectoryChanges();
+            file = file.getAbsoluteFile();
+            filePathRelativize = gameDirectoryPath.relativize(file.toPath()).toString();
+            filePathRelativizeURI = filePathRelativize.replace(File.separatorChar, '/');
 
-            String filePathRelativize;
-            String filePathRelativizeURI;
-            statusLabel.setText("กำลังตรวจสอบความถูกต้องของไฟล์เกม");
-
-            FILELOOP:
-            for (File file : localFiles)
+            if (whitelistFileVerifier.isValid(file))
             {
-                if (file.isDirectory())
+                continue;
+            }
+
+            if (!remoteFiles.containsKey(filePathRelativizeURI))
+            {
+                if (file.exists() && !FileUtil.deleteFileRescursive(file))
                 {
-                    continue;
-                }
-
-                file = file.getAbsoluteFile();
-                filePathRelativize = gameDirectoryPath.relativize(file.toPath()).toString();
-                filePathRelativizeURI = filePathRelativize.replace(File.separatorChar, '/');
-
-                for (String whitelist : whitelistFileList)
-                {
-                    if (filePathRelativizeURI.equals(whitelist))
-                    {
-                        continue FILELOOP;
-                    }
-
-                    if (whitelist.endsWith("/") && filePathRelativizeURI.startsWith(whitelist))
-                    {
-                        continue FILELOOP;
-                    }
-                }
-
-                if (!remoteFiles.containsKey(filePathRelativizeURI))
-                {
-                    if (file.exists() && !FileUtil.deleteFileRescursive(file))
-                    {
-                        Settings.LOGGER.error("Can't delete " + file.toString());
-                        JOptionPane.showMessageDialog(mainFrame, "ไม่สามารถลบไฟล์ได้ (" + filePathRelativizeURI + ")", "ข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
-                        return false;
-                    }
+                    Settings.LOGGER.error("Can't delete " + file.toString());
+                    JOptionPane.showMessageDialog(mainFrame, "ไม่สามารถลบไฟล์ได้ (" + filePathRelativizeURI + ")", "ข้อผิดพลาด", JOptionPane.ERROR_MESSAGE);
+                    return false;
                 }
             }
         }
