@@ -2,7 +2,7 @@
 <launch4jConfig>
   <dontWrapJar>false</dontWrapJar>
   <headerType>gui</headerType>
-  <jar>E:\Programming\Minecraft\mcmafia-launcher\build\libs\mcmafia-launcher-0.1.4-all-obf.jar</jar>
+  <jar>E:\Programming\Minecraft\mcmafia-launcher\build\libs\mcmafia-launcher-0.1.5-all-obf.jar</jar>
   <outfile>E:\Programming\Minecraft\mcmafia-launcher\build\libs\mcmafia-launcher.exe</outfile>
   <errTitle></errTitle>
   <cmdLine></cmdLine>
