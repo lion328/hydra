@@ -14,7 +14,7 @@ public class Settings
 
     public static final Logger LOGGER = LogManager.getLogger("MCMafia-Launcher");
     public static final boolean IGNORE_LAUNCHER_UPDATER;
-    public static final String LAUNCHER_VERSION = "0.1.4";
+    public static final String LAUNCHER_VERSION = "0.1.5";
     public static final String GAME_VERSION_NAME = "MCMafia";
     public static final File GAME_DIRECTORY = new File(OS.getApplicationDataDirectory(), "mc-mafia");
     //public static final URL WEBSITE_URL = constantURL("http://mc-mafia.net");

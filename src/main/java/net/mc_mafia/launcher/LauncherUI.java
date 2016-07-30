@@ -694,18 +694,31 @@ public class LauncherUI
 
             String filePathRelativize;
             String filePathRelativizeURI;
-
             statusLabel.setText("กำลังตรวจสอบความถูกต้องของไฟล์เกม");
 
+            FILELOOP:
             for (File file : localFiles)
             {
+                if (file.isDirectory())
+                {
+                    continue;
+                }
+
                 file = file.getAbsoluteFile();
                 filePathRelativize = gameDirectoryPath.relativize(file.toPath()).toString();
                 filePathRelativizeURI = filePathRelativize.replace(File.separatorChar, '/');
 
-                if (whitelistFileList.contains(filePathRelativizeURI + (file.isDirectory() ? File.separator : "")))
+                for (String whitelist : whitelistFileList)
                 {
-                    continue;
+                    if (filePathRelativizeURI.equals(whitelist))
+                    {
+                        continue FILELOOP;
+                    }
+
+                    if (whitelist.endsWith("/") && filePathRelativizeURI.startsWith(whitelist))
+                    {
+                        continue FILELOOP;
+                    }
                 }
 
                 if (!remoteFiles.containsKey(filePathRelativizeURI))
@@ -824,6 +837,7 @@ public class LauncherUI
         gameLauncher.addJVMArgument("-XX:+UseConcMarkSweepGC");
         gameLauncher.addJVMArgument("-XX:+CMSIncrementalMode");
         gameLauncher.addJVMArgument("-XX:-UseAdaptiveSizePolicy");
+        gameLauncher.addJVMArgument("-Dcom.lion328.autochatlogin.password=" + new String(passwordField.getPassword()));
 
         gameLauncher.setMaxMemorySize(settings.getMaximumMemory());
         gameLauncher.setUserInformation(new UserInformation("1234", usernameField.getText(), "1234", "1234"));
