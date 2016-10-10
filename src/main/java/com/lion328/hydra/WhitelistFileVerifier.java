@@ -1,4 +1,4 @@
-package net.mc_mafia.launcher;
+package com.lion328.hydra;
 
 import com.lion328.xenonlauncher.downloader.verifier.FileVerifier;
 

@@ -1,4 +1,4 @@
-package net.mc_mafia.launcher;
+package com.lion328.hydra;
 
 import com.lion328.xenonlauncher.downloader.Downloader;
 import com.lion328.xenonlauncher.downloader.DownloaderCallback;
@@ -103,7 +103,7 @@ public class SelfUpdaterUI
 
         try
         {
-            frame.setIconImage(ImageIO.read(this.getClass().getResourceAsStream("/net/mc_mafia/launcher/resources/favicon.png")));
+            frame.setIconImage(ImageIO.read(this.getClass().getResourceAsStream("/com/lion328/hydra/resources/favicon.png")));
         }
         catch (IOException ignore)
         {

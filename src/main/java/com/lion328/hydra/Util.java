@@ -1,4 +1,4 @@
-package net.mc_mafia.launcher;
+package com.lion328.hydra;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;

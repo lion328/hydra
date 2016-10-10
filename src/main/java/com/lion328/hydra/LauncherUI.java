@@ -1,4 +1,4 @@
-package net.mc_mafia.launcher;
+package com.lion328.hydra;
 
 import com.google.gson.Gson;
 import com.lion328.xenonlauncher.downloader.Downloader;
@@ -140,7 +140,7 @@ public class LauncherUI
 
         try
         {
-            Font defaultFont = Font.createFont(Font.TRUETYPE_FONT, getClass().getResourceAsStream("/net/mc_mafia/launcher/resources/CSChatThaiUI.ttf"));
+            Font defaultFont = Font.createFont(Font.TRUETYPE_FONT, getClass().getResourceAsStream("/com/lion328/hydra/resources/CSChatThaiUI.ttf"));
             FontUIResource fontUIResource = new FontUIResource(defaultFont.deriveFont(Font.PLAIN, 14));
 
             /*for (Map.Entry<Object, Object> entry : UIManager.getDefaults().entrySet())
@@ -220,7 +220,7 @@ public class LauncherUI
 
         try
         {
-            tmpPanel = new ImagePanel(ImageIO.read(Settings.class.getResourceAsStream("/net/mc_mafia/launcher/resources/launcher_bg.png")));
+            tmpPanel = new ImagePanel(ImageIO.read(Settings.class.getResourceAsStream("/com/lion328/hydra/resources/launcher_bg.png")));
         }
         catch (IOException e)
         {
@@ -243,7 +243,7 @@ public class LauncherUI
 
         try
         {
-            mainFrame.setIconImage(ImageIO.read(this.getClass().getResourceAsStream("/net/mc_mafia/launcher/resources/favicon.png")));
+            mainFrame.setIconImage(ImageIO.read(this.getClass().getResourceAsStream("/com/lion328/hydra/resources/favicon.png")));
         }
         catch (IOException e)
         {
