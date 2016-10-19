@@ -8,11 +8,16 @@ public class PlayerSettings
     public static final int VERSION = 1;
 
     @SerializedName("version")
-    private int version;
+    private int version = VERSION;
     @SerializedName("playerName")
-    private String playerName;
+    private String playerName = "";
     @SerializedName("maximumMemory")
-    private int maximumMemory;
+    private int maximumMemory = 1024;
+
+    public PlayerSettings()
+    {
+
+    }
 
     public PlayerSettings(String playerName, int maximumMemory)
     {

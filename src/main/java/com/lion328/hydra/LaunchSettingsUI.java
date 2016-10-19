@@ -44,7 +44,7 @@ public class LaunchSettingsUI
 
         final JSpinner spinner = new JSpinner(spinnerNumberModel);
 
-        JButton okButton = new JButton("ตกลง");
+        JButton okButton = new JButton(Language.get("accept"));
         okButton.addActionListener(new ActionListener()
         {
             @Override
@@ -55,7 +55,7 @@ public class LaunchSettingsUI
             }
         });
 
-        JButton cancelButton = new JButton("ยกเลิก");
+        JButton cancelButton = new JButton(Language.get("cancel"));
         cancelButton.addActionListener(new ActionListener()
         {
             @Override
@@ -74,7 +74,7 @@ public class LaunchSettingsUI
         constraints.gridx = 0;
         constraints.gridy = 0;
         constraints.fill = GridBagConstraints.BOTH;
-        panel.add(new JLabel("หน่วยความจำที่ใช้ (MiB)"), constraints);
+        panel.add(new JLabel(Language.get("memoryAllocAmountMiB")), constraints);
 
         constraints.gridx = 1;
         constraints.gridwidth = 2;
@@ -88,7 +88,7 @@ public class LaunchSettingsUI
         constraints.gridx = 2;
         panel.add(cancelButton, constraints);
 
-        dialog = new JDialog(mainFrame, "การตั้งค่า", true);
+        dialog = new JDialog(mainFrame, Language.get("settingsTitle"), true);
         dialog.setLocationRelativeTo(null);
         dialog.setContentPane(panel);
         dialog.getRootPane().setDefaultButton(okButton);
