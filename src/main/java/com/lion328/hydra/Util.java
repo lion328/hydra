@@ -105,7 +105,7 @@ public class Util
         {
             try
             {
-                workingJar = new File(Main.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath());
+                workingJar = new File(Util.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath());
             }
             catch (URISyntaxException e)
             {
