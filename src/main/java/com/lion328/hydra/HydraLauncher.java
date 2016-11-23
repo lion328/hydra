@@ -38,6 +38,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.zip.GZIPInputStream;
@@ -56,13 +57,24 @@ public class HydraLauncher implements Launcher
     private LauncherUI ui;
     private HydraSettings settings;
     private PlayerSettings playerSettings;
+    private boolean streamGameOutput;
+    private boolean passPassword;
 
-    public HydraLauncher(HydraSettings settings)
+    public HydraLauncher(HydraSettings settings, boolean streamGameOutput, boolean passPassword)
     {
         this.settings = settings;
+        this.streamGameOutput = streamGameOutput;
+        this.passPassword = passPassword;
 
         gameDirectory = Util.getGameDirectory(settings.getApplicationDirectoryName());
         playerSettingsFile = new File(gameDirectory, PLAYER_SETTINGS_FILENAME);
+
+        loadPlayerSettings();
+    }
+
+    public PlayerSettings getPlayerSettings()
+    {
+        return playerSettings;
     }
 
     public void openSettingsDialog()
@@ -101,7 +113,8 @@ public class HydraLauncher implements Launcher
 
             }
         }
-        else
+
+        if (playerSettings == null)
         {
             playerSettings = new PlayerSettings();
         }
@@ -111,6 +124,11 @@ public class HydraLauncher implements Launcher
     {
         try
         {
+            if (!playerSettingsFile.exists() && !playerSettingsFile.getParentFile().mkdirs())
+            {
+                getLogger().info("Can't create parent directory of playerSettingsFile");
+            }
+
             FileWriter writer = new FileWriter(playerSettingsFile);
             new Gson().toJson(playerSettings, writer);
             writer.close();
@@ -180,6 +198,10 @@ public class HydraLauncher implements Launcher
             }
         }
 
+        whitelistFileList.add(PLAYER_SETTINGS_FILENAME); // Avoid error
+        whitelistFileList.add("launcher.jar");
+        whitelistFileList.add("updater.exe");
+
         return whitelistFileList;
     }
 
@@ -219,7 +241,7 @@ public class HydraLauncher implements Launcher
         Map<String, String> remoteFiles = getFileList();
         Path gameDirectoryPath = gameDirectory.toPath();
 
-        List<Downloader> downloaders = new ArrayList<>();
+        Map<File, Downloader> downloaders = new LinkedHashMap<>();
         Downloader downloader;
         FileVerifier verifier;
 
@@ -248,10 +270,27 @@ public class HydraLauncher implements Launcher
             downloader = new GZIPFileDownloader(url, file);
             downloader = new VerifiyFileDownloader((FileDownloader) downloader, verifier);
 
-            downloaders.add(downloader);
+            downloaders.put(file, downloader);
         }
 
-        return new MultipleDownloader(downloaders);
+        List<File> localFiles = Util.listFiles(gameDirectory, false);
+
+        if (localFiles == null)
+        {
+            throw new IOException("Can't list directory (" + gameDirectory.getAbsolutePath() + ")");
+        }
+
+        for (File file : localFiles)
+        {
+            if (downloaders.containsKey(file) || file.isDirectory())
+            {
+                continue;
+            }
+
+            downloaders.put(file, new VerifiyFileDownloader(new DeleteFileDownloader(file, false), whitelistFileVerifier));
+        }
+
+        return new MultipleDownloader(new ArrayList<>(downloaders.values()));
     }
 
     private GameVersion getGameVersion() throws IOException
@@ -327,9 +366,64 @@ public class HydraLauncher implements Launcher
         ui.displayError(sb.toString());
     }
 
+    private void streamGameOutput(final Process process)
+    {
+        if (!streamGameOutput)
+        {
+            return;
+        }
+
+        new Thread("Game Output Monitor")
+        {
+
+            @Override
+            public void run()
+            {
+                BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+                String s;
+
+                try
+                {
+                    while ((s = reader.readLine()) != null)
+                    {
+                        System.out.println(s);
+                    }
+                }
+                catch (IOException e)
+                {
+                    getLogger().catching(e);
+                }
+            }
+        }.start();
+
+        new Thread("Game Error Monitor")
+        {
+
+            @Override
+            public void run()
+            {
+                BufferedReader reader = new BufferedReader(new InputStreamReader(process.getErrorStream()));
+                String s;
+
+                try
+                {
+                    while ((s = reader.readLine()) != null)
+                    {
+                        System.out.println(s);
+                    }
+                }
+                catch (IOException e)
+                {
+                    getLogger().catching(e);
+                }
+            }
+        }.start();
+    }
+
     @Override
     public void start()
     {
+        ui.start();
         ui.setVisible(true);
     }
 
@@ -386,6 +480,8 @@ public class HydraLauncher implements Launcher
             return false;
         }
 
+        playerSettings.setPlayerName(username);
+
         // update
 
         Downloader downloader = null;
@@ -437,6 +533,11 @@ public class HydraLauncher implements Launcher
         try
         {
             launcher = getGameLauncher(gameVersion, username, null);
+
+            if (passPassword)
+            {
+                launcher.addJVMArgument("-Dcom.lion328.autochatlogin.password=" + new String(password));
+            }
         }
         catch (LauncherVersionException e)
         {
@@ -448,7 +549,7 @@ public class HydraLauncher implements Launcher
 
         try
         {
-            launcher.launch();
+            streamGameOutput(launcher.launch());
         }
         catch (Exception e)
         {
