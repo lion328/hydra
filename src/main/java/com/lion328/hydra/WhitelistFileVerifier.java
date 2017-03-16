@@ -31,6 +31,11 @@ public class WhitelistFileVerifier implements FileVerifier
         String filePathRelativize = gameDirectoryPath.relativize(file.toPath()).toString();
         String filePathRelativizeURI = filePathRelativize.replace(File.separatorChar, '/');
 
+        if (file.isDirectory() && !filePathRelativizeURI.endsWith("/"))
+        {
+            filePathRelativizeURI = filePathRelativize + "/";
+        }
+
         for (String filename : whitelist)
         {
             if (filePathRelativizeURI.equals(filename))

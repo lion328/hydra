@@ -17,10 +17,10 @@ import com.lion328.xenonlauncher.minecraft.launcher.json.data.GameVersion;
 import com.lion328.xenonlauncher.minecraft.launcher.json.data.MergedGameVersion;
 import com.lion328.xenonlauncher.minecraft.launcher.json.data.gson.GsonFactory;
 import com.lion328.xenonlauncher.minecraft.launcher.json.exception.LauncherVersionException;
+import com.lion328.xenonlauncher.util.io.ProcessOutput;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import javax.swing.JFrame;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -38,9 +38,11 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.zip.GZIPInputStream;
 
 public class HydraLauncher implements Launcher
@@ -50,7 +52,7 @@ public class HydraLauncher implements Launcher
     public static final String LAUNCHER_DIRECTORY_NAME = "HydraLauncherMC";
     public static final String PLAYER_SETTINGS_FILENAME = "clientsettings.json";
 
-    private static Logger logger;
+    private static Logger logger = LogManager.getLogger("hydralauncher");
 
     private final File gameDirectory;
     private final File playerSettingsFile;
@@ -59,6 +61,7 @@ public class HydraLauncher implements Launcher
     private PlayerSettings playerSettings;
     private boolean streamGameOutput;
     private boolean passPassword;
+    private PlayerSettingsUI playerSettingsUI;
 
     public HydraLauncher(HydraSettings settings, boolean streamGameOutput, boolean passPassword)
     {
@@ -68,6 +71,8 @@ public class HydraLauncher implements Launcher
 
         gameDirectory = Util.getGameDirectory(settings.getApplicationDirectoryName());
         playerSettingsFile = new File(gameDirectory, PLAYER_SETTINGS_FILENAME);
+
+        gameDirectory.mkdirs();
 
         loadPlayerSettings();
     }
@@ -79,22 +84,23 @@ public class HydraLauncher implements Launcher
 
     public void openSettingsDialog()
     {
-        JFrame mainFrame = null;
-
-        if (ui instanceof HydraLauncherUI)
+        if (playerSettingsUI == null)
         {
-            mainFrame = ((HydraLauncherUI) ui).getJFrame();
+            return;
         }
 
-        LaunchSettingsUI ui = new LaunchSettingsUI(playerSettings, mainFrame);
-        ui.getDialog().setLocationRelativeTo(mainFrame);
-        ui.start();
+        playerSettingsUI.setVisible(true);
+    }
+
+    public void setSettingsUI(PlayerSettingsUI ui)
+    {
+        playerSettingsUI = ui;
+
+        ui.setPlayerSettings(playerSettings);
     }
 
     public void exit(int status)
     {
-        savePlayerSettings();
-
         System.exit(status);
     }
 
@@ -201,6 +207,7 @@ public class HydraLauncher implements Launcher
         whitelistFileList.add(PLAYER_SETTINGS_FILENAME); // Avoid error
         whitelistFileList.add("launcher.jar");
         whitelistFileList.add("updater.exe");
+        whitelistFileList.add("assets/virtual/");
 
         return whitelistFileList;
     }
@@ -209,7 +216,9 @@ public class HydraLauncher implements Launcher
     {
         Map<String, String> remoteFiles = new HashMap<>();
 
-        HttpURLConnection connection = (HttpURLConnection) settings.getCompressedFileListURL().openConnection();
+        URL filelistURL = new URL(settings.getCompressedFileListURL().toString() + "?" + System.currentTimeMillis());
+
+        HttpURLConnection connection = (HttpURLConnection) filelistURL.openConnection();
         connection.setRequestMethod("GET");
 
         BufferedReader br = new BufferedReader(new InputStreamReader(new GZIPInputStream(connection.getInputStream())));
@@ -235,11 +244,29 @@ public class HydraLauncher implements Launcher
         return remoteFiles;
     }
 
+    private static void addParentFiles(Set<File> set, File limit, File file)
+    {
+        if (!file.toPath().toAbsolutePath().normalize().startsWith(limit.toPath().toAbsolutePath().normalize()))
+        {
+            return;
+        }
+
+        File parentFile = file;
+
+        while (!parentFile.equals(limit) && !set.contains(parentFile))
+        {
+            set.add(parentFile);
+
+            parentFile = parentFile.getParentFile();
+        }
+    }
+
     private Downloader getDownloader() throws IOException
     {
         List<String> whitelistFileList = getFileWhitelist();
         Map<String, String> remoteFiles = getFileList();
-        Path gameDirectoryPath = gameDirectory.toPath();
+        Set<File> allowedDirectory = new HashSet<>();
+        Path gameDirectoryPath = gameDirectory.toPath().toAbsolutePath().normalize();
 
         Map<File, Downloader> downloaders = new LinkedHashMap<>();
         Downloader downloader;
@@ -252,6 +279,29 @@ public class HydraLauncher implements Launcher
             String name = URLDecoder.decode(entry.getKey(), StandardCharsets.UTF_8.name());
 
             File file = new File(gameDirectory, name);
+            Path filePath = file.toPath().toAbsolutePath().normalize();
+
+            if (!filePath.startsWith(gameDirectoryPath))
+            {
+                getLogger().error("File \"" + filePath.toString() + "\" is not using allowed path. Ignoring...");
+            }
+
+            if (entry.getValue().trim().equalsIgnoreCase("dir"))
+            {
+                addParentFiles(allowedDirectory, gameDirectory, file);
+
+                if (!file.mkdirs())
+                {
+                    getLogger().error("Can't create directory \"" + file.getAbsolutePath() + "\"");
+                }
+
+                continue;
+            }
+            else
+            {
+                addParentFiles(allowedDirectory, gameDirectory, file.getParentFile());
+            }
+
             URL url = new URL(settings.getFileBaseURL() + name + ".gz");
 
             try
@@ -273,7 +323,7 @@ public class HydraLauncher implements Launcher
             downloaders.put(file, downloader);
         }
 
-        List<File> localFiles = Util.listFiles(gameDirectory, false);
+        List<File> localFiles = Util.listFiles(gameDirectory, true);
 
         if (localFiles == null)
         {
@@ -282,12 +332,17 @@ public class HydraLauncher implements Launcher
 
         for (File file : localFiles)
         {
-            if (downloaders.containsKey(file) || file.isDirectory())
+            if (downloaders.containsKey(file))
             {
                 continue;
             }
 
-            downloaders.put(file, new VerifiyFileDownloader(new DeleteFileDownloader(file, false), whitelistFileVerifier));
+            if (file.isDirectory() && allowedDirectory.contains(file))
+            {
+                continue;
+            }
+
+            downloaders.put(file, new VerifiyFileDownloader(new DeleteFileDownloader(file, true), whitelistFileVerifier));
         }
 
         return new MultipleDownloader(new ArrayList<>(downloaders.values()));
@@ -341,6 +396,7 @@ public class HydraLauncher implements Launcher
 
         gameLauncher.setMaxMemorySize(playerSettings.getMaximumMemory());
         gameLauncher.setUserInformation(new UserInformation("1234", username, "1234", "1234"));
+        gameLauncher.addCrashReportHandler("hydra_crash_report_ui", new CrashReportUI());
 
         return gameLauncher;
     }
@@ -366,7 +422,7 @@ public class HydraLauncher implements Launcher
         ui.displayError(sb.toString());
     }
 
-    private void streamGameOutput(final Process process)
+    private void streamGameOutput(final ProcessOutput process)
     {
         if (!streamGameOutput)
         {
@@ -462,7 +518,6 @@ public class HydraLauncher implements Launcher
     public boolean loginAndLaunch(String username, char[] password)
     {
         // auth
-
         try
         {
             if (!checkAuthentication(username, password))
@@ -481,6 +536,8 @@ public class HydraLauncher implements Launcher
         }
 
         playerSettings.setPlayerName(username);
+
+        savePlayerSettings();
 
         // update
 
@@ -568,11 +625,6 @@ public class HydraLauncher implements Launcher
 
     public static Logger getLogger()
     {
-        if (logger == null)
-        {
-            logger = LogManager.getLogger("hydralauncher");
-        }
-
         return logger;
     }
 }

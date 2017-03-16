@@ -10,8 +10,23 @@ public class ImagePanel extends JPanel
 
     private Image img;
 
+    public ImagePanel()
+    {
+        this(null);
+    }
+
     public ImagePanel(Image img)
     {
+        setImage(img);
+    }
+
+    public void setImage(Image img)
+    {
+        if (img == null)
+        {
+            return;
+        }
+
         this.img = img;
         Dimension size = new Dimension(img.getWidth(null), img.getHeight(null));
         setPreferredSize(size);
@@ -23,7 +38,10 @@ public class ImagePanel extends JPanel
 
     public void paintComponent(Graphics g)
     {
-        g.drawImage(img, 0, 0, null);
+        if (img != null)
+        {
+            g.drawImage(img, 0, 0, null);
+        }
     }
 
 }
