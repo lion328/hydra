@@ -17,7 +17,7 @@ import com.lion328.xenonlauncher.minecraft.launcher.json.data.GameVersion;
 import com.lion328.xenonlauncher.minecraft.launcher.json.data.MergedGameVersion;
 import com.lion328.xenonlauncher.minecraft.launcher.json.data.gson.GsonFactory;
 import com.lion328.xenonlauncher.minecraft.launcher.json.exception.LauncherVersionException;
-import com.lion328.xenonlauncher.util.io.ProcessOutput;
+import com.lion328.xenonlauncher.minecraft.logging.CrashReportUtil;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -43,6 +43,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.regex.Matcher;
 import java.util.zip.GZIPInputStream;
 
 public class HydraLauncher implements Launcher
@@ -62,6 +63,8 @@ public class HydraLauncher implements Launcher
     private boolean streamGameOutput;
     private boolean passPassword;
     private PlayerSettingsUI playerSettingsUI;
+
+    private Thread waitingGameExitThread;
 
     public HydraLauncher(HydraSettings settings, boolean streamGameOutput, boolean passPassword)
     {
@@ -101,6 +104,15 @@ public class HydraLauncher implements Launcher
 
     public void exit(int status)
     {
+        try
+        {
+            waitingGameExitThread.join();
+        }
+        catch (InterruptedException e)
+        {
+            getLogger().catching(e);
+        }
+
         System.exit(status);
     }
 
@@ -396,7 +408,6 @@ public class HydraLauncher implements Launcher
 
         gameLauncher.setMaxMemorySize(playerSettings.getMaximumMemory());
         gameLauncher.setUserInformation(new UserInformation("1234", username, "1234", "1234"));
-        gameLauncher.addCrashReportHandler("hydra_crash_report_ui", new CrashReportUI());
 
         return gameLauncher;
     }
@@ -422,14 +433,16 @@ public class HydraLauncher implements Launcher
         ui.displayError(sb.toString());
     }
 
-    private void streamGameOutput(final ProcessOutput process)
+    private void streamGameOutput(final Process process)
     {
         if (!streamGameOutput)
         {
             return;
         }
 
-        new Thread("Game Output Monitor")
+        final CrashReportUI ui = new CrashReportUI();
+
+        final Thread outputThread = new Thread("Game Output Monitor")
         {
 
             @Override
@@ -440,9 +453,39 @@ public class HydraLauncher implements Launcher
 
                 try
                 {
-                    while ((s = reader.readLine()) != null)
+                    while (true)
                     {
-                        System.out.println(s);
+                        try
+                        {
+                            process.exitValue();
+                            break;
+                        }
+                        catch (IllegalThreadStateException e)
+                        {
+                            if ((s = reader.readLine()) == null)
+                            {
+                                break;
+                            }
+
+                            System.out.println(s);
+
+                            Matcher matcher = CrashReportUtil.CRASH_REPORT_REGEX.matcher(s);
+
+                            if (!matcher.matches())
+                            {
+                                continue;
+                            }
+
+                            ui.onGameCrash(new File(matcher.group(1)));
+
+                            while (true)
+                            {
+                                if (!ui.isRunning())
+                                {
+                                    break;
+                                }
+                            }
+                        }
                     }
                 }
                 catch (IOException e)
@@ -450,7 +493,9 @@ public class HydraLauncher implements Launcher
                     getLogger().catching(e);
                 }
             }
-        }.start();
+        };
+
+        outputThread.start();
 
         new Thread("Game Error Monitor")
         {
@@ -463,9 +508,22 @@ public class HydraLauncher implements Launcher
 
                 try
                 {
-                    while ((s = reader.readLine()) != null)
+                    while (true)
                     {
-                        System.out.println(s);
+                        try
+                        {
+                            process.exitValue();
+                            break;
+                        }
+                        catch (IllegalThreadStateException e)
+                        {
+                            if ((s = reader.readLine()) == null)
+                            {
+                                break;
+                            }
+
+                            System.err.println(s);
+                        }
                     }
                 }
                 catch (IOException e)
@@ -474,6 +532,8 @@ public class HydraLauncher implements Launcher
                 }
             }
         }.start();
+
+        waitingGameExitThread = outputThread;
     }
 
     @Override
@@ -612,6 +672,8 @@ public class HydraLauncher implements Launcher
         {
             getLogger().catching(e);
             displayErrorLang("gameLaunchError", e.getMessage());
+
+            return false;
         }
 
         return true;

@@ -1,22 +1,18 @@
 package com.lion328.hydra;
 
-import com.lion328.xenonlauncher.minecraft.logging.CrashReportHandler;
-
 import javax.swing.JFrame;
 import javax.swing.JScrollPane;
 import javax.swing.JTextArea;
-import javax.swing.SwingUtilities;
 import java.awt.Dimension;
 import java.awt.Font;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.io.File;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 
-public class CrashReportUI implements CrashReportHandler
+public class CrashReportUI
 {
 
     private JFrame frame;
@@ -27,25 +23,8 @@ public class CrashReportUI implements CrashReportHandler
     {
         running = false;
 
-        SwingUtilities.invokeLater(new Runnable()
-        {
-            @Override
-            public void run()
-            {
-                init();
-            }
-        });
-    }
-
-    public synchronized boolean isRunning()
-    {
-        return running;
-    }
-
-    private void init()
-    {
         reportText = new JTextArea();
-        reportText.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+        reportText.setFont(new Font(Font.SANS_SERIF, Font.PLAIN, 14));
         reportText.setLineWrap(true);
         reportText.setEditable(false);
 
@@ -69,7 +48,11 @@ public class CrashReportUI implements CrashReportHandler
         });
     }
 
-    @Override
+    public synchronized boolean isRunning()
+    {
+        return running;
+    }
+
     public void onGameCrash(final File crashReportFile)
     {
         String report;
@@ -86,28 +69,13 @@ public class CrashReportUI implements CrashReportHandler
 
         final String finalReport = report;
 
-        try
-        {
-            SwingUtilities.invokeAndWait(new Runnable()
-            {
+        reportText.setText(finalReport);
+        reportText.setCaretPosition(0);
 
-                @Override
-                public void run()
-                {
-                    reportText.setText(finalReport);
-                    reportText.setCaretPosition(0);
+        frame.setTitle("Minecraft Crash Report (" + crashReportFile.getName() + ")");
+        frame.setVisible(true);
 
-                    frame.setTitle("Minecraft Crash Report (" + crashReportFile.getName() + ")");
-                    frame.setVisible(true);
-
-                    running = true;
-                }
-            });
-        }
-        catch (InterruptedException | InvocationTargetException e)
-        {
-            HydraLauncher.getLogger().catching(e);
-        }
+        running = true;
 
         while (true)
         {
