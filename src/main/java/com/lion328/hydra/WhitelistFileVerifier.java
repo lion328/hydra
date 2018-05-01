@@ -20,7 +20,7 @@ public class WhitelistFileVerifier implements FileVerifier
     }
 
     @Override
-    public boolean isValid(File file) throws IOException
+    public boolean isValid(File file)
     {
         if (!file.exists())
         {
@@ -29,11 +29,11 @@ public class WhitelistFileVerifier implements FileVerifier
 
         file = file.getAbsoluteFile();
         String filePathRelativize = gameDirectoryPath.relativize(file.toPath()).toString();
-        String filePathRelativizeURI = filePathRelativize.replace(File.separatorChar, '/');
+        String filePathRelativizeURI = filePathRelativize.replace('\\', '/');
 
         if (file.isDirectory() && !filePathRelativizeURI.endsWith("/"))
         {
-            filePathRelativizeURI = filePathRelativize + "/";
+            filePathRelativizeURI = filePathRelativizeURI + "/";
         }
 
         for (String filename : whitelist)
