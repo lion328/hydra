@@ -104,13 +104,16 @@ public class HydraLauncher implements Launcher
 
     public void exit(int status)
     {
-        try
+        if (waitingGameExitThread != null)
         {
-            waitingGameExitThread.join();
-        }
-        catch (InterruptedException e)
-        {
-            getLogger().catching(e);
+            try
+            {
+                waitingGameExitThread.join();
+            }
+            catch (InterruptedException e)
+            {
+                getLogger().catching(e);
+            }
         }
 
         System.exit(status);
