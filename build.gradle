@@ -1,13 +1,14 @@
 apply plugin: 'java'
 
-version = '0.1'
+version = '0.2'
 
 repositories {
     mavenCentral()
+    maven { url 'https://jitpack.io' }
 }
 
 dependencies {
-    compile project('xenonlauncher')
+    compile 'com.github.lion328:xenonlauncher:v0.2'
 }
 
 sourceCompatibility = '1.7'
